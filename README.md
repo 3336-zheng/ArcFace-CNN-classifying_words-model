@@ -1,6 +1,6 @@
 # ArcFace-CNN-classifying_words-model_ONNX
 
-基于 TinyCNN 的轻量级语音命令分类模型。接收 3 秒 16kHz 音频，通过 2 层 CNN 提取 LogMel 特征并生成 32 维嵌入向量，可用于语音指令识别，支持导出 ONNX 部署到树莓派等边缘设备。
+基于 TinyCNN 的轻量级语音命令分类模型。接收 3 秒 16kHz 音频，通过 3 层 CNN 提取 LogMel 特征并生成 64 维嵌入向量，配合 SpecAugment 数据增强提升鲁棒性，支持导出 ONNX 部署到树莓派等边缘设备。
 
 ## 快速开始
 

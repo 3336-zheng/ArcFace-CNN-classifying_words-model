@@ -12,7 +12,7 @@ from ..utils.audio import safe_load_audio, extract_logmel
 class LogMelEmbeddingExtractor:
     """使用训练好的 TinyCNN 从 LogMel 特征中提取嵌入向量"""
 
-    def __init__(self, ckpt_path, emb=32, device=None):
+    def __init__(self, ckpt_path, emb=64, device=None):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.emb = emb
 

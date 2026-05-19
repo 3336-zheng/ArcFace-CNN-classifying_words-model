@@ -87,13 +87,15 @@ python -m src.inference.onnx_exporter --ckpt /path/to/model.pth --output tiny_cn
   │
   ├─ Conv1d(40→64, k=5, s=2) + ReLU
   ├─ Conv1d(64→128, k=5, s=2) + ReLU
+  ├─ Conv1d(128→128, k=3, s=1) + ReLU   ← 新增：更大感受野
   ├─ AdaptiveAvgPool1d(1)        → 128 维
-  └─ Linear(128→32)              → 32 维嵌入向量
+  └─ Linear(128→64)              → 64 维嵌入向量
 ```
 
 - **输入**: 3 秒 16kHz 音频 → 40 维 LogMel × 300 帧
-- **输出**: 32 维嵌入向量
+- **输出**: 64 维嵌入向量（原 32 维，区分能力更强）
 - **训练**: 使用 ArcFace 分类头（导出时仅保留嵌入部分）
+- **数据增强**: SpecAugment（随机遮蔽频率/时间帧，提升噪声鲁棒性）
 
 ## ONNX 推理示例
 

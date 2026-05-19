@@ -23,8 +23,16 @@ audio:
 
 # 特征提取
 features:
-  embedding_dim: 32         # 嵌入向量维度
+  embedding_dim: 64         # 嵌入向量维度
   min_samples_per_class: 2  # 每类最少样本数
+
+# SpecAugment 数据增强
+augment:
+  enabled: true
+  freq_mask_param: 8        # 频率遮蔽最大宽度
+  time_mask_param: 20       # 时间遮蔽最大宽度
+  num_freq_masks: 2         # 频率遮蔽次数
+  num_time_masks: 2         # 时间遮蔽次数
 
 # 评估
 eval:

@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.models.tiny_cnn import EmbedOnly
 
 
-def export_to_onnx(ckpt_path, onnx_path="tiny_cnn_rpi.onnx", emb=32):
+def export_to_onnx(ckpt_path, onnx_path="tiny_cnn_rpi.onnx", emb=64):
     """将训练好的模型导出为 ONNX 格式
 
     Args:
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="导出 TinyCNN 为 ONNX 格式")
     parser.add_argument("--ckpt", required=True, help="模型权重路径 (.pth)")
     parser.add_argument("--output", default="tiny_cnn_rpi.onnx", help="ONNX 输出路径")
-    parser.add_argument("--emb", type=int, default=32, help="嵌入维度")
+    parser.add_argument("--emb", type=int, default=64, help="嵌入维度")
     args = parser.parse_args()
 
     export_to_onnx(args.ckpt, args.output, args.emb)

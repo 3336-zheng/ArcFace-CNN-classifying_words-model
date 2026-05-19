@@ -55,6 +55,37 @@ def pad_or_truncate(y, sr, max_duration=3):
     return y
 
 
+def spec_augment(logmel, freq_mask_param=8, time_mask_param=20, num_freq_masks=2, num_time_masks=2):
+    """SpecAugment 数据增强 - 随机遮蔽频率和时间帧
+
+    Args:
+        logmel: LogMel 特征矩阵 (n_mels, n_frames)
+        freq_mask_param: 频率遮蔽最大宽度
+        time_mask_param: 时间遮蔽最大宽度
+        num_freq_masks: 频率遮蔽次数
+        num_time_masks: 时间遮蔽次数
+
+    Returns:
+        增强后的 LogMel 特征矩阵
+    """
+    augmented = logmel.copy()
+    n_mels, n_frames = augmented.shape
+
+    # 频率遮蔽
+    for _ in range(num_freq_masks):
+        f = np.random.randint(0, freq_mask_param)
+        f0 = np.random.randint(0, max(n_mels - f, 1))
+        augmented[f0:f0 + f, :] = 0
+
+    # 时间遮蔽
+    for _ in range(num_time_masks):
+        t = np.random.randint(0, time_mask_param)
+        t0 = np.random.randint(0, max(n_frames - t, 1))
+        augmented[:, t0:t0 + t] = 0
+
+    return augmented
+
+
 def extract_logmel(y, sr=16000, n_mels=40, n_fft=512, hop_length=160, n_frames=300):
     """提取 LogMel 特征并调整到固定帧数
 

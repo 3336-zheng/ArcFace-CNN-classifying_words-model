@@ -1,159 +1,111 @@
-# TinyCNN 语音特征提取模型
+# ArcFace-CNN-classifying_words-model_ONNX
 
-本仓库实现了基于 TinyCNN 的语音特征提取模型，采用 Log\-Mel 特征作为输入，通过 2 层 CNN 提取特征并生成 32 维嵌入向量，使用 5 折交叉验证 \+ 1\-NN 分类器评估模型泛化能力。
+基于 TinyCNN 的语音特征提取模型，采用 LogMel 特征作为输入，通过 2 层 CNN 提取特征并生成 32 维嵌入向量，支持 ONNX 导出用于边缘设备部署。
 
-## 📌 目录
+## 项目结构
 
-- [输入维度与特征](https://www.doubao.cn)
+```
+├── configs/
+│   └── default.yaml              # 集中管理路径和超参数
+├── src/
+│   ├── models/
+│   │   └── tiny_cnn.py           # TinyCNN 模型定义
+│   ├── features/
+│   │   ├── preprocessor.py       # JSONL 数据预处理与指令映射
+│   │   ├── mfcc_extractor.py     # MFCC 16维特征提取
+│   │   ├── handcraft_extractor.py # 手工 32维特征提取
+│   │   └── logmel_extractor.py   # LogMel + TinyCNN 嵌入提取
+│   ├── inference/
+│   │   ├── onnx_exporter.py      # ONNX 模型导出
+│   │   └── onnx_inference.py     # ONNX 推理
+│   └── utils/
+│       └── audio.py              # 公共音频加载与预处理
+├── scripts/
+│   ├── verify.py                 # 逻辑回归特征验证
+│   ├── quick_1nn_test.py         # 1-NN 快速测试
+│   └── view_features.py          # 查看特征数据
+├── requirements.txt
+└── README.md
+```
 
-- [网络架构](https://www.doubao.cn)
+## 环境配置
 
-- [模型原理通俗解析](https://www.doubao.cn)
-
-- [评估与验证方法](https://www.doubao.cn)
-
-- [评估流程通俗说明](https://www.doubao.cn)
-
-## 输入维度与特征
-
-模型输入特征为 **Log\-Mel 特征**（非 MFCC），由梅尔频谱（Mel\-spectrogram）经过对数压缩得到，相比 MFCC 保留更多频域信息。
-
-### Log\-Mel 与 MFCC 的核心区别
-
-- ✅ **MFCC**：梅尔频谱 → 离散余弦变换（DCT） → 倒谱系数（12\-13 维）
-
-- ✅ **Log\-Mel**：梅尔频谱 → 对数压缩（40 维，保留更多频域细节）
-
-### 输入维度详情
-
-输入维度：`40 × 300`
-
-- 40：梅尔频带数量
-
-- 300：时间帧数量
+```bash
+conda activate whisper
+pip install -r requirements.txt
+```
 
 ## 网络架构
 
-模型采用 **2 层 CNN \+ 1 层全连接** 结构，核心用于特征提取与嵌入向量生成，整体结构简洁高效。
+模型采用 **2 层 CNN + 1 层全连接** 结构:
 
-### 各层详细配置
+1. **第一层卷积**: Conv1d(40→64, kernel=5, stride=2) + ReLU
+2. **第二层卷积**: Conv1d(64→128, kernel=5, stride=2) + ReLU
+3. **全局自适应平均池化**: 压缩时间维度至 1
+4. **全连接层**: 128 → 32 维嵌入向量
 
-1. **第一层卷积**
+## 使用方法
 
-    - 输入通道：40（对应梅尔频带数）
+### 1. 配置参数
 
-    - 输出通道：64
+编辑 `configs/default.yaml`，设置数据路径和模型路径。
 
-    - 卷积核大小：5
+### 2. 特征提取
 
-    - 步长：2
+```bash
+# MFCC 16维特征
+python -m src.features.mfcc_extractor
 
-    - 激活函数：ReLU
+# 手工 32维特征
+python -m src.features.handcraft_extractor
+```
 
-2. **第二层卷积**
+### 3. ONNX 导出
 
-    - 输入通道：64
+```bash
+python -m src.inference.onnx_exporter --ckpt <模型权重路径> --output tiny_cnn_rpi.onnx
+```
 
-    - 输出通道：128
+### 4. ONNX 推理
 
-    - 卷积核大小：5
+```python
+from src.inference.onnx_inference import TinyCNNInferencePC, create_classifier_from_features
 
-    - 步长：2
+# 初始化推理器
+model = TinyCNNInferencePC("tiny_cnn_rpi.onnx", "command_mapping.json")
 
-    - 激活函数：ReLU
+# 创建分类器
+classifier, scaler = create_classifier_from_features("features.npy", "labels.npy")
 
-3. **全局自适应平均池化层**
+# 预测
+command, confidence = model.predict_single("test.wav", classifier, scaler)
+```
 
-    - 功能：将任意长度的序列池化为长度 1，压缩时间维度
+### 5. 评估
 
-    - 输出：128 维特征向量（去除压缩后的时间维度）
+```bash
+# 逻辑回归验证
+python scripts/verify.py --features features.npy --labels labels.npy
 
-4. **全连接层**
+# 1-NN 快速测试
+python scripts/quick_1nn_test.py --features features.npy --labels labels.npy
 
-    - 功能：将 128 维特征向量映射为 32 维嵌入向量
+# 查看特征
+python scripts/view_features.py --features features.npy --labels labels.npy
+```
 
-### 后续流程说明
+## 输入维度
 
-- 📚 训练阶段：32 维嵌入向量送入 **ArcFace 分类头** 进行训练
+- **输入特征**: LogMel (40 维梅尔频带 × 300 时间帧)
+- **输出**: 32 维嵌入向量
+- **采样率**: 16kHz
+- **音频时长**: 3 秒
 
-- 🔍 推理/ONNX 导出：仅保留至 32 维嵌入向量，用于后续任务
+## 评估方法
 
-## 模型原理通俗解析
+采用 **5 折交叉验证 + 1-NN 分类器** 评估模型泛化能力，直接衡量嵌入空间的判别质量。
 
-用生活化类比，快速理解模型工作逻辑：
+## 注意事项
 
-- **语音（音频）**：就像你拿起一个真实的苹果、香蕉或者橘子（原始样本）。
-      
-
-- **Log\-Mel/MFCC 特征处理**：你不是把整个水果塞给机器人，而是用一个特殊的扫描仪，把这个水果的 “内部特征”（比如甜度、硬度、水分）扫描出来，变成一张特征卡片。这张卡片比整个水果轻便多了，便于模型处理。
-      
-
-- **模型（TinyCNN）**：这个机器人内部有一个 “大脑”。它的工作就是学习看这些“特征卡片”，然后总结出：
-        
-
-    - 所有苹果的卡片，在某个方面都很相似；
-
-    - 所有香蕉的卡片，在另一个方面也很相似；
-
-    - 而且苹果和香蕉的卡片，差别很大。
-
-- **训练目标**：这个大脑最终学会了一个神奇的本领——把任何一张水果特征卡片，压缩成一个短短的“身份证号码”（就是那个 32 维的嵌入向量）。这个“身份证”有一个特点：同一种水果的“身份证”都非常像，不同水果的“身份证”差别很大。
-      
-
-## 评估与验证方法
-
-采用 **5 折交叉验证 \+ 1\-NN 分类器** 评估模型泛化能力，核心衡量嵌入空间的判别质量（同类样本聚集、异类样本分离）。
-
-### 评估具体步骤
-
-1. 用训练好的模型，提取整个训练集的 32 维嵌入向量及对应标签；
-
-2. 对嵌入向量进行标准化处理（去均值、方差归一化）；
-
-3. 使用 1\-NN 分类器（最近邻分类器，n\_neighbors=1），在嵌入向量上执行 5 折交叉验证；
-
-4. 5 折交叉验证：将数据分为 5 份，每次用 4 份训练 1\-NN 分类器、1 份测试，循环 5 次后取平均准确率，作为最终评估结果。
-
-### 评估方法优势
-
-直接衡量嵌入空间的判别性——同类样本是否聚集、不同类样本是否分离，1\-NN 分类器的准确率直接反映嵌入空间质量。
-
-### 注意事项
-
-本评估未使用独立测试集，通过训练集上的 5 折交叉验证，估计模型的泛化能力（假设无独立测试集场景）。
-
-### 评估指标含义类比
-
-- 📊 **Loss 值**：相当于期末考试分数（可能包含死记硬背的成分）；
-
-- 🎯 **5 折 1\-NN 准确率**：相当于能力测评（真正考察模型对特征的理解与泛化能力）。
-
-## 评估流程通俗说明
-
-用“最强大脑”式考试，通俗理解 5 折交叉验证 \+ 1\-NN 的工作逻辑：
-
-### 第一步：准备考题
-
-你把所有训练用的水果卡片（嵌入向量）都让模型用“大脑”转换成“身份证号码”。
-
-### 第二步：考试规则（5 折交叉验证）
-
-- 将所有“身份证”随机分成 5 堆（比如每堆 200 个，共 1000 个）；
-
-- 考试进行 5 轮，每一轮藏起其中 1 堆作为“考题”，剩下的 4 堆作为“参考数据库”交给模型。
-
-### 第三步：答题方式（1\-NN / 最近邻）
-
-- 从“考题”里拿出一个“身份证”（比如一个苹果的），问模型：“这是啥？”；
-
-- 模型的答题规则：在“参考数据库”中，找出和手上这个“身份证”最像的一个，直接说那个最像的“身份证”对应的水果名字；
-
-- 评分标准：找对（数据库中最像的也是苹果）得 1 分，找错（最像的是香蕉）得 0 分；
-
-- 完成一轮 200 道考题，计算本轮准确率。
-
-### 第四步：最终成绩
-
-5 轮考试全部结束后，取 5 次准确率的平均值，即为模型的最终泛化能力得分。
-
->  (TCNNAudio) TinyCNN 语音特征提取模型，基于 Log\-Mel 特征输入，通过 2 层 CNN 提取特征并生成 32 维嵌入向量，使用 5 折交叉验证 \+ 1\-NN 分类器评估模型泛化能力。
+- 本评估未使用独立测试集，通过训练集上的 5 折交叉验证估计模型泛化能力
+- ONNX 导出仅保留嵌入部分（不含 ArcFace 分类头）

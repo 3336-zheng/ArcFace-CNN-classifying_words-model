@@ -1,0 +1,31 @@
+# 默认配置 - 根据实际环境修改路径
+
+# 数据路径
+data:
+  jsonl_train: ""           # 训练集 JSONL 文件路径
+  command_mapping: ""       # 指令映射 JSON 文件路径
+  features_npy: ""          # 特征文件路径
+  labels_npy: ""            # 标签文件路径
+
+# 模型路径
+model:
+  checkpoint: ""            # .pth 模型权重路径
+  onnx_output: "tiny_cnn_rpi.onnx"  # ONNX 导出路径
+
+# 音频参数
+audio:
+  sample_rate: 16000
+  max_duration: 3           # 最大音频时长（秒）
+  n_mels: 40                # 梅尔频带数
+  n_fft: 512
+  hop_length: 160
+  time_frames: 300          # 固定时间帧数
+
+# 特征提取
+features:
+  embedding_dim: 32         # 嵌入向量维度
+  min_samples_per_class: 2  # 每类最少样本数
+
+# 评估
+eval:
+  cv_folds: 5               # 交叉验证折数

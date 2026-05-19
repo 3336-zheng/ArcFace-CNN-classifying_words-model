@@ -1,23 +1,20 @@
-# view_features.py
-#为了查看特征和标签文件的内容，了解特征矩阵的形状、标签数量、特征范围、均值、标准差以及标签分布情况。这有助于我们更好地理解数据的结构和分布，为后续的数据处理和模型训练提供参考。
+"""查看特征和标签文件的内容"""
 
 import numpy as np
 import json
-import pandas as pd
+import argparse
 
 
-def view_features_and_labels():
+def view_features_and_labels(features_path, labels_path, mapping_path=None):
     """查看特征和标签文件内容"""
+    features = np.load(features_path)
+    labels = np.load(labels_path)
 
-    # 加载特征数据
-    features = np.load("features.npy")
-    labels = np.load("labels.npy")
-
-    # 加载指令映射
-    with open(r"D:\专用轻量分类器\command_mapping_second_only_one.json", 'r', encoding='utf-8') as f:
-        command_mapping = json.load(f)
-
-    reverse_mapping = {v: k for k, v in command_mapping.items()}
+    reverse_mapping = {}
+    if mapping_path:
+        with open(mapping_path, 'r', encoding='utf-8') as f:
+            command_mapping = json.load(f)
+        reverse_mapping = {v: k for k, v in command_mapping.items()}
 
     print("=" * 50)
     print("特征数据概览")
@@ -46,4 +43,10 @@ def view_features_and_labels():
 
 
 if __name__ == "__main__":
-    view_features_and_labels()
+    parser = argparse.ArgumentParser(description="查看特征和标签文件")
+    parser.add_argument("--features", default="features.npy", help="特征文件路径")
+    parser.add_argument("--labels", default="labels.npy", help="标签文件路径")
+    parser.add_argument("--mapping", default=None, help="指令映射 JSON 文件路径")
+    args = parser.parse_args()
+
+    view_features_and_labels(args.features, args.labels, args.mapping)

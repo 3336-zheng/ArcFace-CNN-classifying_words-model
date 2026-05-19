@@ -19,8 +19,6 @@ conda activate arcface
 pip install -r requirements.txt
 ```
 
-> 如果已有可用的 conda 环境（如 `whisper`），直接激活后 `pip install -r requirements.txt` 即可。
-
 ### 3. 准备数据
 
 编辑 `configs/default.yaml`，填入你的数据路径：
